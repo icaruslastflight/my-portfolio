@@ -192,6 +192,35 @@ const INITIAL_PROJECTS = [
     ]
   },
   {
+    id: "lyric-gen",
+    title: "Lyric Gen — Resolume Arena OSC Sidecar",
+    role: "Systems Architect & Developer",
+    location: "Live Touring & Production",
+    discipline: "AV Systems & Tooling",
+    stack: [
+      "Python 3.12 / Tkinter Dark Theme",
+      "Resolume Arena 7 OSC Protocol",
+      "ACRCloud Acoustic Fingerprinting",
+      "LRCLIB Synchronized Lyrics API",
+      "PyAudio Real-Time Audio Capture",
+      "28-Band FFT Energy Detection"
+    ],
+    metrics: [
+      { label: "LATENCY", val: "<5 ms Real-Time OSC Transmission" },
+      { label: "ACCURACY", val: "98% Acoustic Fingerprint Match" },
+      { label: "BPM TRACKING", val: "60–200 BPM Harmonic Snap" },
+      { label: "RESOLUME SYNC", val: "Bidirectional UDP Feedback" }
+    ],
+    summary: "Challenge: Synchronizing live concert lyrics and dynamic tempo changes in Resolume Arena typically requires frantic manual clip cueing or rigid click-track timecode, failing during live DJ improvisation. Solution: Engineered Lyric Gen, a standalone Windows sidecar that continuously monitors audio input via PyAudio, performs acoustic fingerprinting with ACRCloud, streams millisecond-accurate synchronized lyrics from LRCLIB directly into Resolume BlockTextGenerator clips, and broadcasts stabilized BPM and beat pulses via OSC. Outcome: Delivered an autonomous, zero-latency touring tool with automatic song recognition, harmonic BPM quantization, deadband synchronization, and live two-way Resolume Arena transport integration.",
+    official_links: [
+      { label: "GitHub Repository", url: "https://github.com/icaruslastflight/lyric-gen", badge: "Open Source" }
+    ],
+    assets: [
+      { id: "asset-lg-1", name: "Lyric Gen Live Telemetry & Control Dashboard", type: "image", isPrimary: true, url: "/media/LyricGen-dashboard.jpg" },
+      { id: "asset-lg-2", name: "Resolume Arena 7 4-Layer OSC Architecture", type: "image", isPrimary: false, url: "/media/LyricGen-resolume-stack.jpg" }
+    ]
+  },
+  {
     id: "underground-stage",
 
     title: "Underground Stage Design",

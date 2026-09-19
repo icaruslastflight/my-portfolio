@@ -1,31 +1,18 @@
 [build]
   command = "npm run build"
   publish = "dist"
-
 [build.environment]
   NODE_VERSION = "22"
   NPM_FLAGS = "--no-audit --no-fund"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Cache-Control = "public, max-age=0, must-revalidate"
+    Permissions-Policy = 'microphone=(self), camera=(), geolocation=(), autoplay=(self "https://open.spotify.com")'
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; media-src 'self' blob:; connect-src 'self'; frame-src https://open.spotify.com; object-src 'none'; base-uri 'self'; form-action 'self'"
 [[headers]]
   for = "/media/*"
   [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-[[headers]]
-  for = "/assets/*"
-  [headers.values]
-    Cache-Control = "public, max-age=31536000, immutable"
-
-# index.html must always revalidate: it is the only file whose name never
-# changes, and it is what points at the content-hashed bundle. If a browser
-# caches it, that browser keeps loading the previous build's assets -- which
-# are served immutable for a year -- and never sees a new deploy.
-[[headers]]
-  for = "/index.html"
-  [headers.values]
-    Cache-Control = "public, max-age=0, must-revalidate"
+    Cache-Control = "public, max-age=3600"

@@ -1,0 +1,18 @@
+import {test} from 'node:test';import assert from 'node:assert/strict';
+import {clamp,defaults,sanitize,genres,scenes,presets,tapTempo,spotifyEmbed,spectrumBands,bitonicStages} from '../src/live/model.mjs';import {projects} from '../src/live/projects.mjs';
+test('five genres have valid authored patterns',()=>{assert.deepEqual(genres.map(g=>g.id),['dnb','house','midtempo','140','garage']);for(const g of genres){assert(g.bpm>=50&&g.bpm<=200);assert(g.kick.length&&g.snare.length&&g.bass.length);assert(g.swing>=0&&g.swing<.5);assert([...g.kick,...g.snare,...g.bass].every(n=>n>=0&&n<16));}});
+test('four original scenes',()=>assert.equal(scenes.length,4));
+test('control normalization rejects out-of-range and nonfinite values',()=>{const s=sanitize({feedback:9,mosh:8,zoom:-1,hue:Infinity,speed:NaN});assert.equal(s.feedback,.92);assert.equal(s.mosh,.94);assert.equal(s.zoom,.5);assert.equal(s.hue,-180);assert.equal(s.speed,0);});
+test('defaults survive normalization',()=>assert.deepEqual(sanitize(),defaults));
+test('presets respect bounds',()=>{for(const p of Object.values(presets))assert.deepEqual(sanitize(p),p);});
+test('tap estimates 120 BPM',()=>assert.equal(tapTempo([0,.5,1,1.5,2]),120));
+test('tap estimates 172 BPM with jitter',()=>assert.equal(tapTempo([0,.349,.696,1.045,1.394]),172));
+test('invalid tap sequences do not invent tempo',()=>{assert.equal(tapTempo([0]),null);assert.equal(tapTempo([0,2,4]),null);});
+test('Spotify allowlisted playlist URL',()=>assert.equal(spotifyEmbed('https://open.spotify.com/playlist/1234567890123456789012?si=x'),'https://open.spotify.com/embed/playlist/1234567890123456789012?utm_source=generator&theme=0'));
+test('Spotify locale URLs supported',()=>assert(spotifyEmbed('https://open.spotify.com/intl-en/track/1234567890123456789012')));
+test('untrusted Spotify iframe sources rejected',()=>{for(const u of ['javascript:alert(1)','https://evil.com/track/1234567890123456789012','https://open.spotify.com.evil.com/playlist/1234567890123456789012','https://user@open.spotify.com/album/1234567890123456789012','http://open.spotify.com/playlist/1234567890123456789012','https://open.spotify.com:9999/playlist/1234567890123456789012','https://open.spotify.com/playlist/short'])assert.equal(spotifyEmbed(u),null);});
+test('spectrum maps into normalized bands',()=>{assert.deepEqual(spectrumBands(new Uint8Array(1024),48000,2048),[0,0,0]);assert.deepEqual(spectrumBands(new Uint8Array(1024).fill(255),48000,2048),[1,1,1]);});
+test('ten-stage bitonic network sorts sixteen values',()=>{const passes=bitonicStages();assert.equal(passes.length,10);const values=[9,3,12,5,7,0,13,4,10,6,2,1,15,8,14,11];let a=values;for(const [k,j] of passes)a=a.map((v,x)=>{const partner=x+(Math.floor(x/j)%2<1?j:-j),low=x<partner,asc=Math.floor(x/k)%2<1;return low===asc?Math.min(v,a[partner]):Math.max(v,a[partner]);});assert.deepEqual(a,[...values].sort((a,b)=>a-b));});
+test('threshold-gated network preserves pixels',()=>{const values=[.7,.1,.9,.2,.3,.6,.8,.2,.15,.22,.32,.42,.53,.65,.1,.5];let a=values;for(const [k,j] of bitonicStages())a=a.map((v,x)=>{const p=x+(Math.floor(x/j)%2<1?j:-j);if(v<.18||a[p]<.18)return v;return (x<p)===(Math.floor(x/k)%2<1)?Math.min(v,a[p]):Math.max(v,a[p]);});assert.deepEqual([...a].sort(),[...values].sort());});
+test('eleven unique projects with preserved local media paths',()=>{assert.equal(projects.length,11);assert.equal(new Set(projects.map(p=>p.id)).size,11);for(const p of projects){assert(p.media.startsWith('/media/'));assert(p.challenge&&p.architecture&&p.execution);if(p.link)assert(p.link.startsWith('https://'));}});
+test('clamp UI edge cases',()=>{assert.equal(clamp(undefined),0);assert.equal(clamp('0.25'),.25);assert.equal(clamp(-3),0);assert.equal(clamp(20),1);});

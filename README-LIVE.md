@@ -1,6 +1,6 @@
 # Primordial / a portfolio you can play
 
-An original browser VJ instrument for Brice Morneau: four procedural 3D scenes, five built-in music sketches, eleven project case studies and a live effects rack. The interface uses clip-launcher and signal-flow conventions without copying Resolume, Derivative or Unit44 branding or assets.
+An original browser VJ instrument for Brice Morneau: four procedural 3D scenes, five built-in music sketches, ten project case studies and a live effects rack. The interface uses clip-launcher and signal-flow conventions without copying Resolume, Derivative or Unit44 branding or assets.
 
 ## Start the set
 

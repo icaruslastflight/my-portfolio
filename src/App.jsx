@@ -995,10 +995,10 @@ export default function MobileMultiSelectPortfolio() {
               ✉︎ Brice@primordial.video
             </a>
             <a
-              href="tel:+14123767138"
+              href="tel:+14126527879"
               style={CONTACT_PILL}
             >
-              ☎ (412) 376-7138
+              ☎ (412) 652-7879
             </a>
           </div>
 

@@ -4,7 +4,7 @@ export const DEFAULT_AUTHOR_PROFILE: AuthorProfile = {
   name: 'Brice Anthony Morneau',
   title: 'Creative Technologist // Technical Director // Experience Designer',
   email: 'events.bricem@gmail.com',
-  phone: '(412) 376-7138',
+  phone: '(412) 652-7879',
   location: 'Pittsburgh, PA 15204 (Transit-Accessible & Tour-Ready • Regional Hub: PIT)',
   website: 'primordial-portfolio.netlify.app',
   github: 'https://github.com/icaruslastflight',

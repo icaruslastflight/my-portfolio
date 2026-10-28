@@ -160,38 +160,6 @@ const INITIAL_PROJECTS = [
     ]
   },
   {
-    id: "spatial-previs-engine",
-    title: "Spatial Previs Engine",
-    role: "Creator & Lead Engineer",
-    location: "R&D / Open Source — Pittsburgh, PA",
-    discipline: "Spatial Computing",
-    stack: [
-      "TypeScript / Three.js / CesiumJS",
-      "Unreal Engine 5.8 (Native Desktop)",
-      "WebGPU WGSL Volumetric Beams",
-      "GDTF DIN SPEC 15800 Fixture Profiles",
-      "Gaussian Splatting (point-cloud venues)",
-      "Art-Net 4 / sACN / DMX512"
-    ],
-    metrics: [
-      { label: "TEST SUITE", val: "662 Passing / 17 Files" },
-      { label: "PLATFORMS", val: "Web · Mobile · UE5 Desktop" },
-      { label: "ASSET LIBRARY", val: "37 Modular Event Assets" },
-      { label: "SNAP TOLERANCE", val: "150 mm Magnetic Socket System" }
-    ],
-    summary: "Challenge: Replace static 2D staging drawings with a real-time, venue-independent pre-visualization tool that works on a phone on-site and a full UE5 workstation in post. Solution: Built a dual-platform spatial twin engine — a TypeScript/Three.js/CesiumJS web client and a native UE5 foundation sharing a strict JSON project schema, magnetic socket-snap system, GDTF fixture profiles, Gaussian-splat point cloud registration and WebGPU volumetric beam rendering. Outcome: Delivered a 662-test, owner-accepted R0 release with full touch pre-vis on Android, GDTF fixture kinematic chains, laser MPE safety checks, electrical load calculation and a verified native UE5 conformance suite.",
-    official_links: [
-      { label: "Live Demo — R0 Workspace", url: "https://icaruslastflight.github.io/spatial-previs-engine/r0.html", badge: "Live Demo" },
-      { label: "GitHub Repository", url: "https://github.com/icaruslastflight/spatial-previs-engine", badge: "Open Source" }
-    ],
-    assets: [
-      { id: "asset-spe-1", name: "Concert Stage Overview — Full Rig", type: "image", isPrimary: true, url: "/media/SpatialPrevis-stage-overview.jpg" },
-      { id: "asset-spe-2", name: "Beam Detail — Laser MPE Safety + Volumetric Cones", type: "image", isPrimary: false, url: "/media/SpatialPrevis-beam-detail.jpg" },
-      { id: "asset-spe-3", name: "Mobile Touch Interface (390px viewport)", type: "image", isPrimary: false, url: "/media/SpatialPrevis-mobile.jpg" },
-      { id: "asset-spe-4", name: "Live Demo — Try the R0 Workspace", type: "cad", isPrimary: false, url: "https://icaruslastflight.github.io/spatial-previs-engine/r0.html" }
-    ]
-  },
-  {
     id: "lyric-gen",
     title: "Lyric Gen — Resolume Arena OSC Sidecar",
     role: "Systems Architect & Developer",
@@ -878,7 +846,7 @@ export default function MobileMultiSelectPortfolio() {
             {project.official_links && project.official_links.length > 0 && (
               <div style={{ marginBottom: '16px', backgroundColor: 'rgba(30, 41, 59, .46)', backdropFilter: 'blur(12px)', borderRadius: '10px', padding: '12px', border: '1px solid rgba(100, 116, 139, .45)' }}>
                 <div style={{ fontSize: '10px', fontWeight: 800, color: '#38bdf8', letterSpacing: '0.05em', textTransform: 'uppercase', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <span>VERIFIED REFERENCES &amp; LIVE PORTALS</span>
+                  <span>PROJECT LINKS</span>
                 </div>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                   {project.official_links.map((link, idx) => (
@@ -922,7 +890,7 @@ export default function MobileMultiSelectPortfolio() {
 
             <div style={{ borderTop: '1px solid #1e293b', paddingTop: '12px' }}>
               <div style={{ fontSize: '11px', fontWeight: 800, color: '#94a3b8', marginBottom: '8px', textTransform: 'uppercase' }}>
-                ASSIGNED MEDIA ASSETS ({project.assets.length})
+                PROJECT GALLERY ({project.assets.length})
               </div>
 
               {project.assets.length === 0 ? (

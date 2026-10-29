@@ -44,5 +44,8 @@ body{background:transparent;isolation:isolate}
 @media(prefers-reduced-motion:reduce){.brand.hover-rendering .brand-logo{visibility:visible}.hover-surface.hover-rendering:not(.brand){color:inherit!important}}
 .project-card{background:rgba(20,26,23,.64);border-color:rgba(210,225,212,.16)}
 .project-card:hover{background:rgba(24,31,27,.72);border-color:rgba(208,249,145,.38)}
-.liquid-background{filter:blur(2px);transform:scale(1.025)}
+.liquid-background{filter:none;transform:none}
 
+
+.scroll-liquid{transform:translate3d(0,var(--liquid-y,0px),0) skewY(var(--liquid-skew,0deg));transform-origin:center}
+@media(prefers-reduced-motion:reduce){.scroll-liquid{transform:none!important}}

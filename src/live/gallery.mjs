@@ -21,9 +21,9 @@ export function mountGallery(container,project,{detail=false}={}){
  const stage=container.querySelector('.gallery-stage'),strip=container.querySelector('.gallery-strip'),caption=container.querySelector('.gallery-caption');
  let current;
  const select=index=>{
-  if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='IFRAME')current.src='about:blank';}
+  if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='VIDEO'){current.removeAttribute('src');current.load();}if(current.tagName==='IFRAME')current.src='about:blank';}
   const file=items[index],youtube=file.startsWith('youtube:'),video=file.endsWith('.mp4');
-  const title=youtube?'Republic Club · featured YouTube video':project.id==='bespoke-builds'&&index===0?'My studio VJ video':project.id==='lyric-gen'&&index>0?'Interface concept — not an application screenshot':file.replace(/\.(jpg|png|webp|svg|mp4)$/,'').replaceAll('-',' ');
+  const title=youtube?'Republic Club · featured YouTube video':project.id==='bespoke-builds'&&index===0?'My studio VJ video':project.id==='lyric-gen'&&index>0?'Interface concept — not an application screenshot':project.title+' · '+(video?'Video':'Gallery image')+' '+(index+1);
   current=document.createElement(youtube?'iframe':video?'video':'img');
   if(youtube){const id=file.slice(8);current.dataset.source=`https://www.youtube-nocookie.com/embed/${id}?start=17&autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&rel=0`;current.title=title;current.allow='autoplay; encrypted-media; picture-in-picture';current.allowFullscreen=true;current.referrerPolicy='strict-origin-when-cross-origin';videoObserver.observe(current);}
   else if(video){current.dataset.source='/media/'+file;current.muted=true;current.loop=true;current.playsInline=true;current.autoplay=true;current.controls=detail;current.preload='metadata';if(index===0&&project.poster)current.poster=project.poster;videoObserver.observe(current);}
@@ -37,5 +37,5 @@ export function mountGallery(container,project,{detail=false}={}){
   else b.innerHTML=`<img src="/media/${esc(file)}" alt="" loading="lazy" decoding="async">`;
   b.onclick=e=>{e.stopPropagation();select(index);};strip.append(b);
  });select(0);
- return ()=>{if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='IFRAME')current.src='about:blank';}};
+ return ()=>{if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='VIDEO'){current.removeAttribute('src');current.load();}if(current.tagName==='IFRAME')current.src='about:blank';}};
 }

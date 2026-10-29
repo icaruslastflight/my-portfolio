@@ -1,5 +1,5 @@
 // Organic cues keep authored plant detail, then retire it for an exact artwork hold.
-export const organicEffectIds=new Set(['flora-ivy','flora-moss','flora-bloom','flora-roots','flora-swarm','flora-lotus','flora-coral','flora-engrave']);
+export const organicEffectIds=new Set(['flora-ivy','flora-moss','flora-bloom','flora-roots','flora-swarm','flora-lotus','flora-coral','flora-engrave','flora-watercolor','flora-circuit']);
 export function organicDefaults(effect){return organicEffectIds.has(effect.id)?{uTint:[.94,1,.96,1],uSporeCount:0,uVineThickness:effect.id==='flora-swarm'?.65:.85,uWindFreq:.35}:{};}
 export function growthParameter(effect){if(effect.id==='metal-crystal')return {name:'uCrystal',min:0,max:1,label:'Grow crystals'};if(organicEffectIds.has(effect.id))return {name:'uGrowth',min:0,max:100,label:'Grow logo'};return null;}
 export function growthCueValue(parameter,elapsed){const t=Math.max(0,Math.min(1,Number.isFinite(elapsed)?elapsed/5:0)),phase=t*t*(3-2*t);return parameter.min+(parameter.max-parameter.min)*phase;}

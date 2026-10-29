@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import{finishingEffectIds,transitionDefaults}from'../src/live/transition-effects.mjs';import{stingers}from'../src/live/stingers.mjs';
+test('transition and pillar defaults fit their authored controls',()=>{assert.equal(finishingEffectIds.size,8);for(const id of finishingEffectIds){const e=stingers.find(e=>e.id===id);assert.ok(e);for(const[name,value]of Object.entries(transitionDefaults(e))){const p=e.params.find(p=>p.name===name);assert.ok(p);if(typeof value==='number')assert.ok(value>=p.min&&value<=p.max,id+' '+name);else assert.ok(value.every(n=>n>=0&&n<=1));}}});
+test('pillar brand settings use smaller cells and depth than the source default',()=>{const e=stingers.find(e=>e.id==='metal-pillars'),v=transitionDefaults(e);for(const key of['uCell','uDepth','uOrbit'])assert.ok(v[key]<e.params.find(p=>p.name===key).default);});

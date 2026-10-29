@@ -19,11 +19,20 @@ export function mountGallery(container,project,{detail=false}={}){
  const items=files[project.id]||[project.media.replace('/media/','')];
  container.innerHTML='<div class="gallery-stage"></div><div class="gallery-strip" aria-label="Project media"></div><p class="gallery-caption"></p>';
  const stage=container.querySelector('.gallery-stage'),strip=container.querySelector('.gallery-strip'),caption=container.querySelector('.gallery-caption');
- let current;
+ let current,selected=0;
+ const navigation=document.createElement("div");navigation.className="gallery-navigation";
+ const previous=document.createElement("button"),next=document.createElement("button");
+ previous.type=next.type="button";previous.textContent="← Previous";next.textContent="Next →";
+ previous.setAttribute("aria-label",project.title+": previous media");next.setAttribute("aria-label",project.title+": next media");
+ navigation.append(previous,next);stage.after(navigation);
+ if(detail){container.tabIndex=0;container.setAttribute("aria-label",project.title+" gallery. Use left and right arrow keys to browse.");}
+ caption.setAttribute("aria-live","polite");
  const select=index=>{
+  selected=(index+items.length)%items.length;index=selected;
   if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='VIDEO'){current.removeAttribute('src');current.load();}if(current.tagName==='IFRAME')current.src='about:blank';}
   const file=items[index],youtube=file.startsWith('youtube:'),video=file.endsWith('.mp4');
-  const title=youtube?'Republic Club · featured YouTube video':project.id==='bespoke-builds'&&index===0?'My studio VJ video':project.id==='lyric-gen'&&index>0?'Interface concept — not an application screenshot':project.title+' · '+(video?'Video':'Gallery image')+' '+(index+1);
+  const mediaLabels={"VanGogh1-StarryNight.jpg":"Starry Night projection room","VanGogh2-AlmondBlossoms.jpg":"Almond Blossoms projection","VanGogh3-Irises.webp":"Irises projection","VanGogh4-PoemFloor.jpg":"Floor projection detail","Stage4-Homebass1-CAD.jpg":"Home Bass · CAD planning study","Stage6-HiJinx1-render.jpg":"HiJinx · stage visualization","Stage7-HiJinx2-CAD.jpg":"HiJinx · CAD planning study","Setdesign2-Mural-flat.jpg":"Studio scenic mural","Setdesign3-portal-build.jpg":"Portal fabrication","TheXperience1-statue-Day.jpg":"Sculptural surface in daylight","TheXperience3-led-forest.jpg":"Lighting within the landscape"};
+  const title=mediaLabels[file]|| (youtube?'Republic Club · featured YouTube video':project.id==='bespoke-builds'&&index===0?'My studio VJ video':project.id==='lyric-gen'&&index>0?'Interface concept — not an application screenshot':project.title+' · '+(video?'Video':'Gallery image')+' '+(index+1));
   current=document.createElement(youtube?'iframe':video?'video':'img');
   if(youtube){const id=file.slice(8);current.dataset.source=`https://www.youtube-nocookie.com/embed/${id}?start=17&autoplay=1&mute=1&loop=1&playlist=${id}&playsinline=1&rel=0`;current.title=title;current.allow='autoplay; encrypted-media; picture-in-picture';current.allowFullscreen=true;current.referrerPolicy='strict-origin-when-cross-origin';videoObserver.observe(current);}
   else if(video){current.dataset.source='/media/'+file;current.muted=true;current.loop=true;current.playsInline=true;current.autoplay=true;current.controls=detail;current.preload='metadata';if(index===0&&project.poster)current.poster=project.poster;videoObserver.observe(current);}
@@ -36,6 +45,9 @@ export function mountGallery(container,project,{detail=false}={}){
   else if(file.endsWith('.mp4'))b.innerHTML=`<span>▶</span><small>Film ${index+1}</small>`;
   else b.innerHTML=`<img src="/media/${esc(file)}" alt="" loading="lazy" decoding="async">`;
   b.onclick=e=>{e.stopPropagation();select(index);};strip.append(b);
- });select(0);
- return ()=>{if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='VIDEO'){current.removeAttribute('src');current.load();}if(current.tagName==='IFRAME')current.src='about:blank';}};
+ });
+ previous.onclick=e=>{e.stopPropagation();select(selected-1);};next.onclick=e=>{e.stopPropagation();select(selected+1);};
+ const onKey=e=>{if(e.target!==container)return;if(e.key==="ArrowLeft"||e.key==="ArrowRight"){e.preventDefault();select(selected+(e.key==="ArrowRight"?1:-1));}};
+ container.addEventListener("keydown",onKey);select(0);
+ return ()=>{container.removeEventListener("keydown",onKey);if(current){videoObserver.unobserve(current);current.pause?.();if(current.tagName==='VIDEO'){current.removeAttribute('src');current.load();}if(current.tagName==='IFRAME')current.src='about:blank';}};
 }

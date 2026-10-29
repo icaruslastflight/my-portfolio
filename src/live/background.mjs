@@ -1,3 +1,4 @@
+import {seedGrains,stepGrain} from './sediment.mjs';
 // Exact viewport pointer coordinates, a decaying stirred wake, and scroll-driven waves.
 const canvas=document.createElement('canvas');canvas.className='liquid-background';canvas.setAttribute('aria-hidden','true');document.body.prepend(canvas);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -17,38 +18,41 @@ if(gl){
  float wave=sin(uv.y*10.-time*3.2+sin(uv.x*3.)*.5)*scrollWave;
  p+=flow+vec2(wave*.075,sin(uv.x*5.+time)*scrollWave*.025);
  float t=time*.035;vec2 q=vec2(fbm(p*1.65+vec2(t,-t*.7)),fbm(p*1.65+vec2(4.3,-1.7)-t*.8));
+ float localDetail=clamp(glow+min(wake*.35,1.),0.,1.);
  float field=fbm(p*2.2+q*2.8+flow*1.8);float film=field*11.+q.x*3.+wake*.6;
+ // Finer contours are confined to the stirred region; the distant field stays soft.
+ film+=localDetail*noise(p*13.+q*2.)*.65;
  vec3 purple=vec3(.28,.105,.4),green=vec3(.1,.32,.21);vec3 tint=mix(purple,green,.5+.5*sin(film));
  float ribbon=pow(.5+.5*sin(field*15.+q.y*3.),4.);vec3 base=vec3(.037,.046,.042);
- vec3 pearl=.5+.5*cos(vec3(0.,2.1,4.2)+film*1.7+time*.18);
+ vec3 clearTint=mix(purple,green,smoothstep(.3,.7,.5+.5*sin(film)));
  float stirred=clamp(wake*.48+glow*.45,0.,1.);
- vec3 col=base+tint*(.23+.38*ribbon)+pearl*stirred*.18+tint*abs(wave)*.16;
+ vec3 col=base+tint*(.23+.38*ribbon)+clearTint*stirred*(.18+.24*ribbon)+tint*abs(wave)*.16;
  col+=vec3((hash(gl_FragCoord.xy)-.5)/255.);gl_FragColor=vec4(col,1.);
  }`);
  const glitter=program(`attribute vec4 particle;attribute vec3 tint;varying vec3 color;varying float alpha;uniform float scale;
  void main(){gl_Position=vec4(particle.xy*2.-1.,0.,1.);gl_PointSize=particle.z*scale;color=tint;alpha=particle.w;}`,`precision mediump float;varying vec3 color;varying float alpha;
- void main(){vec2 d=gl_PointCoord-.5;float core=exp(-dot(d,d)*42.);float rays=exp(-abs(d.x)*55.-abs(d.y)*9.)+exp(-abs(d.y)*55.-abs(d.x)*9.);gl_FragColor=vec4(color*(core+rays*.32)*alpha,1.);}`);
+ void main(){vec2 d=gl_PointCoord-.5;float flake=1.-smoothstep(.12,.5,abs(d.x)*.85+abs(d.y));gl_FragColor=vec4(color*flake*alpha,1.);}`);
  const quad=gl.createBuffer(),dots=gl.createBuffer();resources.push(['buffer',quad],['buffer',dots]);gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array([-1,-1,1,-1,-1,1,-1,1,1,-1,1,1]),gl.STATIC_DRAW);
  const u=Object.fromEntries(['size','pointer','time','activity','scrollWave','wakes[0]'].map(n=>[n,gl.getUniformLocation(liquid,n)]));
  const quadPos=gl.getAttribLocation(liquid,'p'),dotPos=gl.getAttribLocation(glitter,'particle'),dotTint=gl.getAttribLocation(glitter,'tint'),dotScale=gl.getUniformLocation(glitter,'scale');
  let frame=0,last=0,elapsed=0,lost=false,pointer=[.5,.5],inside=false,lastMove=0,previous=null,wakeIndex=0,scrollEnergy=0,pendingScroll=0,previousScroll=scrollY;
- const wakes=new Float32Array(64),particles=[];let surfaces=[];
+ const wakes=new Float32Array(64),particles=seedGrains(520);let surfaces=[];
  function resize(){const r=canvas.getBoundingClientRect();canvas.width=Math.max(1,Math.round(Math.min(r.width*.75,1440)));canvas.height=Math.max(1,Math.round(canvas.width*r.height/r.width));gl.viewport(0,0,canvas.width,canvas.height);previous=null;render(0);}
  function waveContent(){const amplitude=reduced.matches?0:scrollEnergy;const rects=surfaces.map(el=>el.getBoundingClientRect());surfaces.forEach((el,i)=>{const phase=rects[i].top/innerHeight*5.-elapsed*3.2;el.style.setProperty('--liquid-y',(Math.sin(phase)*amplitude*5).toFixed(2)+'px');el.style.setProperty('--liquid-skew',(Math.cos(phase)*amplitude*.22).toFixed(3)+'deg');});}
  function render(dt){
   gl.disable(gl.BLEND);gl.useProgram(liquid);gl.bindBuffer(gl.ARRAY_BUFFER,quad);gl.enableVertexAttribArray(quadPos);gl.vertexAttribPointer(quadPos,2,gl.FLOAT,false,0,0);
   gl.uniform2f(u.size,canvas.width,canvas.height);gl.uniform2f(u.pointer,...pointer);gl.uniform1f(u.time,elapsed);gl.uniform1f(u.activity,inside?1:0);gl.uniform1f(u.scrollWave,scrollEnergy);gl.uniform4fv(u['wakes[0]'],wakes);gl.drawArrays(gl.TRIANGLES,0,6);gl.disableVertexAttribArray(quadPos);
-  const points=[];for(let i=particles.length-1;i>=0;i--){const s=particles[i];s.life-=dt;if(s.life<=0){particles.splice(i,1);continue;}s.x+=s.vx*dt;s.y+=s.vy*dt;s.vx*=Math.exp(-dt*2);s.vy*=Math.exp(-dt*2);const a=Math.sin(Math.PI*s.life/s.total)*.75;points.push(s.x,s.y,s.size,a,...s.color);}
+  const points=[];for(const s of particles){stepGrain(s,dt,elapsed,wakes,canvas.width/canvas.height);const twinkle=.5+.5*Math.sin(elapsed*2.2+s.phase);const a=(.035+s.agitation*.62)*(.45+.55*twinkle);points.push(s.x,s.y,s.size*(1+s.agitation*.35),a,...s.color);}
   if(points.length){gl.useProgram(glitter);gl.bindBuffer(gl.ARRAY_BUFFER,dots);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(points),gl.DYNAMIC_DRAW);gl.enableVertexAttribArray(dotPos);gl.vertexAttribPointer(dotPos,4,gl.FLOAT,false,28,0);gl.enableVertexAttribArray(dotTint);gl.vertexAttribPointer(dotTint,3,gl.FLOAT,false,28,16);gl.uniform1f(dotScale,canvas.width/canvas.getBoundingClientRect().width);gl.enable(gl.BLEND);gl.blendFunc(gl.ONE,gl.ONE);gl.drawArrays(gl.POINTS,0,points.length/7);gl.disableVertexAttribArray(dotTint);gl.disableVertexAttribArray(dotPos);gl.disable(gl.BLEND);}
  }
  function loop(now){frame=0;if(document.hidden||reduced.matches||lost)return;if(now-last>=32){const dt=Math.min((now-last)/1000,.08);last=now;elapsed+=dt;scrollEnergy=Math.max(-1,Math.min(1,scrollEnergy*Math.exp(-dt*4.5)+pendingScroll));pendingScroll=0;render(dt);waveContent();}frame=requestAnimationFrame(loop);}
- function sync(){cancelAnimationFrame(frame);frame=0;last=performance.now();previous=null;if(reduced.matches){wakes.fill(0);particles.length=0;scrollEnergy=pendingScroll=0;inside=false;waveContent();}if(!document.hidden&&!reduced.matches&&!lost)frame=requestAnimationFrame(loop);else if(!lost)render(0);}
+ function sync(){cancelAnimationFrame(frame);frame=0;last=performance.now();previous=null;if(reduced.matches){wakes.fill(0);particles.splice(0,particles.length,...seedGrains(520));scrollEnergy=pendingScroll=0;inside=false;waveContent();}if(!document.hidden&&!reduced.matches&&!lost)frame=requestAnimationFrame(loop);else if(!lost)render(0);}
  window.addEventListener('pointermove',e=>{
   if(reduced.matches||e.pointerType==='touch')return;
   const r=canvas.getBoundingClientRect(),x=(e.clientX-r.left)/r.width,y=1-(e.clientY-r.top)/r.height,now=performance.now();pointer=[x,y];inside=true;
   if(previous){const dx=x-previous[0],dy=y-previous[1],distance=Math.hypot(dx*r.width,dy*r.height);if(distance>2){const strength=Math.min(1.4,.3+distance/65),count=Math.min(5,Math.ceil(distance/14));
    for(let j=1;j<=count;j++){const f=j/count,px=previous[0]+dx*f,py=previous[1]+dy*f;const index=wakeIndex++%16;wakes.set([px,py,strength,elapsed],index*4);
-    if(particles.length<96){const life=.55+Math.random()*.8;particles.push({x:px+(Math.random()-.5)*.012,y:py+(Math.random()-.5)*.012,vx:dx*.8-dy*.3,vy:dy*.8+dx*.3,life,total:life,size:3+Math.random()*5,color:Math.random()>.5?[.65,.9,.45]:[.8,.5,1.]});}
+
    }
   }}previous=[x,y];lastMove=now;
  },{passive:true});

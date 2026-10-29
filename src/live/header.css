@@ -50,3 +50,5 @@ body{background:transparent;isolation:isolate}
 
 /* Room for the logo treatment; the large artwork keeps its existing size. */
 .topbar .brand{overflow:visible}
+
+@media(max-width:800px){.topbar{position:relative;top:auto}}

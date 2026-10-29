@@ -1,14 +1,14 @@
-// Five-second logo cues include clear artwork at both ends.
+// Five-second logo cues fade at the seam; the loop pauses250ms between cues.
 export const EFFECT_DURATION=5;
 const clamp=x=>Math.max(0,Math.min(1,x));
 const ease=x=>{x=clamp(x);return x*x*(3-2*x);};
 export function logoEnvelope(seconds){
  const t=Number.isFinite(seconds)?seconds:0;
- return ease((t-.35)/.3)*(1-ease((t-3.95)/.4));
+ return ease(t/.12)*(1-ease((t-4.88)/.12));
 }
 export function logoTreatment(id,seconds){
  const t=Math.max(0,Number.isFinite(seconds)?seconds:0);
- const phase=clamp((t-.35)/4);
+ const phase=clamp(t/5);
  const pulse=phase===0||phase===1?0:Math.sin(Math.PI*phase)**2;
  const common={hoverMix:logoEnvelope(t),readability:.08};
  const cue=Math.max(0,t-.35),second=cue>=2,beat=Math.max(.001,(cue%2)/2);

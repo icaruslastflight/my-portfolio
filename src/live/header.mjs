@@ -1,3 +1,4 @@
+import './logo-loop.mjs';
 // One shared WebGL surface, eight audited looks, hover lettering and an automatic logo loop.
 import {Renderer,isfProgram} from './render.mjs';
 import {stingers} from './stingers.mjs';
@@ -10,8 +11,8 @@ const seen=new WeakSet(),cycles=new WeakMap(),programs=new Map();
 let effectTarget,outputProgram,outputSize,cropRect;
 let renderer,active=null,pending=null,frame=0,token=0,start=0,current,order=0,lastFrame=0,logoVisible=false,logoTimer;
 const brand=document.querySelector('.topbar .brand');
-function scheduleLogo(){clearTimeout(logoTimer);if(logoVisible&&!reduced.matches&&!document.hidden)logoTimer=setTimeout(()=>{if(!active&&!pending)play(brand);},1400);}
-document.querySelector('.brand-effect')?.remove();
+function scheduleLogo(){}
+
 function stop(){token++;cancelAnimationFrame(frame);frame=0;active?.classList.remove('hover-rendering');canvas.remove();active=null;pending=null;scheduleLogo();}
 function rasterText(el,rect,pad,scale){
  const plate=document.createElement('canvas');plate.width=Math.ceil((rect.width+pad*2)*scale);plate.height=Math.ceil((rect.height+pad*2)*scale);
@@ -114,17 +115,38 @@ function draw(now){
  canvas.style.opacity="1";
  if(t<EFFECT_DURATION)frame=requestAnimationFrame(draw);else stop();
 }
+// Mobile has no hover: entering the center band starts one cue per visit.
+const mobileText=matchMedia('(max-width: 800px), (hover: none)');
+let centerObserver=null,centered=null,centerFrame=0;
+const centerCandidates=new Set();
+function checkCenter(){
+ centerFrame=0;if(!mobileText.matches||reduced.matches||document.hidden)return;
+ const middle=innerHeight/2;
+ const choices=[...centerCandidates].filter(el=>el.isConnected).map(el=>({el,r:el.getBoundingClientRect()})).filter(({r})=>r.width&&r.height).map(({el,r})=>({el,d:Math.abs(r.top+r.height/2-middle)})).filter(x=>x.d<innerHeight*.17).sort((a,b)=>a.d-b.d);
+ const next=choices[0]?.el||null;if(next===centered)return;
+ if(centered&&(active===centered||pending===centered))stop();centered=next;if(next)play(next);
+}
+function queueCenter(){if(!centerFrame)centerFrame=requestAnimationFrame(checkCenter);}
+function isMobileText(el){return !el.matches('.brand,.topbar nav a')&&parseFloat(getComputedStyle(el).fontSize)>=24;}
+function setupCenter(){
+ centerObserver?.disconnect();centerCandidates.clear();centered=null;
+ if(!mobileText.matches||reduced.matches)return;
+ const margin=Math.round(innerHeight*.32);
+ centerObserver=new IntersectionObserver(entries=>{for(const entry of entries){if(entry.isIntersecting)centerCandidates.add(entry.target);else centerCandidates.delete(entry.target);}queueCenter();},{rootMargin:`-${margin}px 0px -${margin}px 0px`,threshold:0});
+ document.querySelectorAll('.hover-surface').forEach(el=>{if(isMobileText(el))centerObserver.observe(el);});
+}
 function attach(){
  for(const el of document.querySelectorAll('.topbar .brand,.topbar nav a,h1,h2,h3,h4,h5,h6,p,strong,span,a,button')){
-  if(seen.has(el))continue;if(!el.matches('.brand,.topbar nav a,h1,h2,h3,h4,h5,h6')&&!(parseFloat(getComputedStyle(el).fontSize)>=24&&[...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())))continue;seen.add(el);el.classList.add('hover-surface');
+  if(el.classList.contains('brand')||seen.has(el))continue;if(!el.matches('.brand,.topbar nav a,h1,h2,h3,h4,h5,h6')&&!(parseFloat(getComputedStyle(el).fontSize)>=24&&[...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())))continue;seen.add(el);el.classList.add('hover-surface');if(centerObserver&&mobileText.matches&&isMobileText(el))centerObserver.observe(el);
   cycles.set(el,el.classList.contains('brand')?0:el.matches('.topbar nav a')?1+(order++%7):(order++%8));
   el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')play(el);});
-  el.addEventListener('pointerleave',()=>{if((active===el||pending===el)&&el!==brand)stop();});
+  el.addEventListener('pointerleave',e=>{if(e.pointerType==='touch'||(mobileText.matches&&centered===el))return;if((active===el||pending===el)&&el!==brand)stop();});
   el.addEventListener('focus',()=>play(el));el.addEventListener('blur',()=>{if(active===el||pending===el)stop();});
  }
 }
-attach();const observer=new MutationObserver(attach);observer.observe(document.body,{subtree:true,childList:true});
+attach();setupCenter();mobileText.addEventListener('change',setupCenter);window.addEventListener('scroll',queueCenter,{passive:true});
+const observer=new MutationObserver(attach);observer.observe(document.body,{subtree:true,childList:true});
 const logoObserver=new IntersectionObserver(([entry])=>{logoVisible=entry.isIntersecting;if(!logoVisible&&(active===brand||pending===brand))stop();else if(!active)scheduleLogo();});logoObserver.observe(brand);
-reduced.addEventListener('change',stop);window.addEventListener('resize',stop);window.addEventListener('blur',stop);
+reduced.addEventListener('change',()=>{stop();setupCenter();});window.addEventListener('resize',()=>{stop();setupCenter();});window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else scheduleLogo();});
-window.addEventListener('pagehide',()=>{logoVisible=false;stop();clearTimeout(logoTimer);logoObserver.disconnect();observer.disconnect();if(effectTarget&&renderer){renderer.gl.deleteTexture(effectTarget.t);renderer.gl.deleteFramebuffer(effectTarget.f);}renderer?.destroy();});
+window.addEventListener('pagehide',()=>{logoVisible=false;stop();clearTimeout(logoTimer);logoObserver.disconnect();observer.disconnect();centerObserver?.disconnect();cancelAnimationFrame(centerFrame);if(effectTarget&&renderer){renderer.gl.deleteTexture(effectTarget.t);renderer.gl.deleteFramebuffer(effectTarget.f);}renderer?.destroy();});

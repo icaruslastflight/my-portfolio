@@ -20,12 +20,33 @@ export function fluidShader(effect,source){
  source=source.replace('uniform vec2 RENDERSIZE;','uniform vec2 RENDERSIZE;uniform sampler2D geometryImage;')
  .replace('return keyed(imgClamp(uv)) * inb.x * inb.y;','return samplePlate(geometryImage,uv).a * inb.x * inb.y;')
  .replace('return vec4(c.rgb, keyed(c) * inb.x * inb.y);','return vec4(c.rgb, samplePlate(geometryImage,uv).a * inb.x * inb.y);');
- if(effect.id==='fluid-vortex')source=source.replace('col += acc * (1.0 - la * 0.85);','col += acc * (1.0 - la * 0.85) * .42;').replace('(0.6 + 1.0 * kick) * 1.3','(0.35 + 0.5 * kick) * .65').replace('(0.25 + 0.8 * kick)','(0.08 + 0.3 * kick)');
+ if(effect.id==='fluid-vortex')source=source.replace('col += acc * (1.0 - la * 0.85);','col += acc * (1.0 - la * 0.85) * .42;').replace('(0.6 + 1.0 * kick) * 1.3','(0.35 + 0.5 * kick) * .65').replace('(0.25 + 0.8 * kick)','(0.08 + 0.3 * kick)').replace('(0.6 + 1.2 * uHigh * aud)','(.28 + .42 * min(uHigh * aud,1.))');
  if(effect.id==='fluid-mercury')source=source.replace('logoField(pb, 0.03)','logoField(pb, 0.008)').replace('logoField(pb, 0.06)','logoField(pb, 0.018)').replace('col *= 1.0 + 0.3 * uHigh * aud;','col *= 1.0 + 0.3 * uHigh * aud; col=mix(col,logoRGBA(pb).rgb,.24*la);');
  if(effect.id==='fluid-magnet')source=source.replace('float near = smoothstep(0.0, 0.06, F.x);','float near = smoothstep(0.015, 0.16, F.x);').replace('mix(0.15, 1.0, near * near)','mix(0.0, 1.0, near * near)').replace('float lock = smoothstep(0.75, 1.0, pulse);','float lock = smoothstep(0.48, 0.82, pulse);');
  if(effect.id==='fluid-cymatic')source=source.replace('mix(0.22, 0.4, thin)','mix(0.55, 0.75, thin)').replace('float m = (1.0 - smoothstep(sz * 0.7, sz * 1.1, length(f))) * exist;','sz=max(sz,.9/RENDERSIZE.y);float m = (1.0 - smoothstep(sz * 0.7, sz * 1.1, length(f))) * exist;');
  if(effect.id==='fluid-ember')source=source.replace('0.003 + 0.003 * fk','0.0018 + 0.0012 * fk').replace('0.95 - 0.7 * ageN','0.72 - 0.55 * ageN').replace('(1.6 + 0.6 * sin(t * 20.0 + h.y * 50.0))','(.65 + .2 * sin(t * 20.0 + h.y * 50.0))');
  if(effect.id==='fluid-soapfilm')source=source.replace('vec4 lg = logoRGBA(p);','vec4 lg = logoRGBA(p); lg.a=logoP(p);').replace('lg.rgb * 0.18 + filmL * (0.5 + 0.6 * luma)','lg.rgb * 0.42 + filmL * (0.3 + 0.4 * luma)').replace('sheen * 0.3','sheen * 0.16').replace('halo * (0.6 + 0.6 * kick)','halo * (0.25 + 0.3 * kick)');
+ if(effect.id==='fluid-magnet'){
+  source=source.replace(/void\s+main\s*\(\s*\)/,'void magnetMain()');
+  return source+`
+void main(){
+   vec2 q=isf_FragNormCoord;vec4 artwork=samplePlate(inputImage,q);
+   float pulse=.5-.5*cos(TIME/max(uLifespan,.2)*6.2831853);
+   float hold=smoothstep(.48,.82,pulse);
+   if(hold>.9999){gl_FragColor=artwork;return;}
+   magnetMain();
+   float support=samplePlate(geometryImage,q).a;
+   float radius=clamp(RENDERSIZE.y*.032,3.,12.);
+   for(int ring=1;ring<=2;ring++)for(int k=0;k<8;k++){
+    float a=float(k)*.785398163;vec2 offset=vec2(cos(a),sin(a))*radius*(float(ring)*.5)/RENDERSIZE;
+    support=max(support,samplePlate(geometryImage,q+offset).a);
+   }
+   vec4 treated=gl_FragColor;treated.a*=support;
+   vec4 pm=mix(vec4(treated.rgb*treated.a,treated.a),vec4(artwork.rgb*artwork.a,artwork.a),hold);
+   gl_FragColor=vec4(pm.rgb/max(pm.a,.0001),pm.a);
+  }
+`;
+ }
  const endpoint=effect.id==='fluid-frost'?'uClear>=.9999':effect.id==='fluid-ash'?'uDissolve<=.0001':effect.id==='fluid-ember'?'uBurn<=.0001':null;
  const exit=effect.id==='fluid-ash'?'uDissolve':effect.id==='fluid-ember'?'uBurn':null;
  if(endpoint){source=source.replace(/void\s+main\s*\(\s*\)/,'void fluidMain()');source+='\nvoid main(){if('+endpoint+'){gl_FragColor=samplePlate(inputImage,isf_FragNormCoord);return;}fluidMain();'+(exit?'gl_FragColor.a*=1.-smoothstep(.94,1.,'+exit+');':'')+'}\n';}

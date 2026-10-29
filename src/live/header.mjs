@@ -1,4 +1,4 @@
-import './logo-loop.mjs';
+import {isLogoBetweenCues} from './logo-loop.mjs';
 // One shared WebGL surface, eight audited looks, hover lettering and an automatic logo loop.
 import {Renderer,isfProgram} from './render.mjs';
 import {stingers} from './stingers.mjs';
@@ -58,6 +58,9 @@ async function play(el){
  canvas.style.cssText=`left:${rect.left-host.left-xPad}px;top:${rect.top-host.top-pad}px;width:${rect.width+xPad*2}px;height:${rect.height+pad*2}px`;
  el.append(canvas);active=el;pending=null;
  try{
+  const cacheKey=current.id+(isLogo?':logo':':text'),cold=!renderer||!programs.has(cacheKey);
+  // Keep synchronous first-use compilation out of the logo's brief clean interval.
+  if(cold){while(isLogoBetweenCues()&&ticket===token&&!document.hidden&&!reduced.matches)await new Promise(requestAnimationFrame);if(ticket!==token||reduced.matches||document.hidden)return;}
   if(!renderer)renderer=new Renderer(canvas,stop,true);
   if(renderer.lost){stop();return;}
   outputSize=[plate.width,plate.height];
@@ -71,9 +74,9 @@ async function play(el){
   if(!effectTarget)effectTarget=renderer.target();
   if(!outputProgram)outputProgram=renderer.program(`precision highp float;varying vec2 uv;uniform sampler2D image;uniform vec4 cropRect;void main(){gl_FragColor=texture2D(image,cropRect.xy+uv*cropRect.zw);}`);
   canvas.width=outputSize[0];canvas.height=outputSize[1];
-  const cacheKey=current.id+(isLogo?':logo':':text');let program=programs.get(cacheKey);if(!program){const shader=hoverShader(current,isLogo,isfProgram);program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
+  let program=programs.get(cacheKey);if(!program){const shader=hoverShader(current,isLogo,isfProgram);program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
   const g=renderer.gl;g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,renderer.logoTexture);g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,true);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,plate);
-  el.dataset.hoverEffect=current.id;start=performance.now();lastFrame=0;frame=requestAnimationFrame(draw);
+  el.dataset.hoverEffect=current.id;start=performance.now();lastFrame=0;if(cold){draw(start);start=performance.now();}else frame=requestAnimationFrame(draw);
  }catch(error){console.warn('Hover shader unavailable',current?.id,error);stop();}
 }
 function draw(now){

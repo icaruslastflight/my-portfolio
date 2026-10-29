@@ -69,8 +69,8 @@ async function play(el){
   if(!outputProgram)outputProgram=renderer.program(`precision highp float;varying vec2 uv;uniform sampler2D image;uniform vec4 cropRect;void main(){gl_FragColor=texture2D(image,cropRect.xy+uv*cropRect.zw);}`);
   canvas.width=outputSize[0];canvas.height=outputSize[1];
   const cacheKey=current.id+(isLogo?':logo':':text');let program=programs.get(cacheKey);if(!program){let adapted=isfProgram(current);if(!isLogo&&current.id==='glitch-pixelsort')adapted=adapted.replace(/float gate =[^;]+;/,'float gate = 1.0;');const shader=adapted.replace(/void\s+main\s*\(\s*\)/,'void hoverEffectMain()')+`
-uniform float hoverMix;
-void main(){hoverEffectMain();vec4 original=samplePlate(inputImage,isf_FragNormCoord);gl_FragColor=mix(original,mix(gl_FragColor,original,${isLogo?'0.0':'0.14'}*original.a),hoverMix);}`;program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
+uniform float hoverMix,readability,materialGain;
+void main(){hoverEffectMain();vec4 original=samplePlate(inputImage,isf_FragNormCoord);gl_FragColor.rgb=clamp(gl_FragColor.rgb*materialGain,0.,1.);gl_FragColor=mix(original,mix(gl_FragColor,original,readability*original.a),hoverMix);}`;program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
   const g=renderer.gl;g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,renderer.logoTexture);g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,true);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,plate);
   el.dataset.hoverEffect=current.id;start=performance.now();lastFrame=0;frame=requestAnimationFrame(draw);
  }catch(error){console.warn('Hover shader unavailable',current?.id,error);stop();}
@@ -80,7 +80,7 @@ function draw(now){
  const t=(now-start)/1000,p=Math.min(t/4.5,1),pulse=Math.sin(Math.PI*p);
  if(now-lastFrame<32){frame=requestAnimationFrame(draw);return;}lastFrame=now;
  const values=Object.fromEntries(current.params.map(p=>[p.name,p.default]));
- Object.assign(values,{TIME:t+1.4,TIMEDELTA:1/30,logoScale:1,uAudioReact:0,uBass:0,uMid:0,uHigh:0,uTint:[.68,.4,1,1],uTint2:[.58,1,.24,1],uLumaKey:false,hoverMix:Math.max(0,Math.min(1,t/.15,(5-t)/.45))});
+ Object.assign(values,{TIME:t+1.4,TIMEDELTA:1/30,logoScale:1,uAudioReact:0,uBass:0,uMid:0,uHigh:0,uTint:[.68,.4,1,1],uTint2:[.58,1,.24,1],uLumaKey:false,readability:active.classList.contains('brand')?0:.16,materialGain:1,hoverMix:Math.max(0,Math.min(1,t/.28,(5-t)/.6))});
  switch(current.id){
  case 'glitch-pixelsort':Object.assign(values,{TIME:1.4,uGlitch:.58,uGlitchFreq:.484,uScanDensity:420,uChannelOffset:.006,uBeat:Math.max(.001,((t%2.5)/2.5)*.8)});break;
  case 'fluid-soapfilm':Object.assign(values,{uGravityWell:.15,uBounce:.15,uTurbScale:1.6,uLifespan:4.5});break;
@@ -91,6 +91,18 @@ function draw(now){
  case 'glitch-halftone':Object.assign(values,{TIME:1.4,uGlitch:.5*pulse,uScanDensity:900,uChannelOffset:.002,uBeat:.12});break;
  case 'fluid-ash':Object.assign(values,{uDissolve:.12*pulse,uTint:[.68,.4,1,1]});break;
  case 'fluid-shockwave':Object.assign(values,{uBeat:Math.min(.99,p),uBounce:.12,uGravityWell:.3,uTurbScale:1.5,uTint:[.6,1,.3,1]});break;
+ }
+ if(!active.classList.contains('brand')){
+  const treatments={
+   'glitch-ledwall':{uResolve:1-.48*pulse,uBloom:.1},
+   'fluid-soapfilm':{uTurbScale:1.4,uLifespan:5.5,readability:.2},
+   'metal-acrylic':{uSettle:1-.36*pulse,uDepth:.007,uFresnel:.8},
+   'metal-chrome':{uDepth:.014,uBevel:.004,uRoughness:.38,uTint:[.92,.96,.9,1],materialGain:1.2,readability:.26},
+   'metal-glass':{uDepth:.012,uRoughness:.1,uFresnel:.85,uTint:[.76,.9,.86,1],materialGain:1.1,readability:.23},
+   'metal-holo':{uDepth:.01,uFresnel:.7,uTint:[.6,1,.4,1]},
+   'metal-anodized':{uDepth:.02,uRoughness:.32,uTint:[.68,.56,.95,1]},
+   'metal-guilloche':{uDepth:.008,uLineFreq:82,uOrbit:.16,uRoughness:.35,readability:.28,materialGain:1.1}
+  };Object.assign(values,treatments[current.id]);
  }
  renderer.w=1024;renderer.h=576;
  renderer.draw(current.program,effectTarget,values,{inputImage:renderer.logoTexture});

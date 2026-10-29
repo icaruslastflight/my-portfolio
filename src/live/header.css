@@ -47,3 +47,6 @@ body{background:transparent;isolation:isolate}
 .liquid-background{filter:none;transform:none}
 
 
+
+/* Room for the logo treatment; the large artwork keeps its existing size. */
+.topbar .brand{overflow:visible}

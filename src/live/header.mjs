@@ -1,17 +1,18 @@
 // One shared WebGL surface, eight audited looks, hover lettering and an automatic logo loop.
 import {Renderer,isfProgram} from './render.mjs';
 import {stingers} from './stingers.mjs';
+import {EFFECT_DURATION,logoTreatment,hoverShader} from './effect-preview.mjs';
 export const hoverEffects=['glitch-pixelsort','fluid-soapfilm','metal-acrylic','flora-engrave','glitch-ledwall','glitch-halftone','fluid-ash','fluid-shockwave'];
 const textEffects=['glitch-ledwall','fluid-soapfilm','metal-acrylic','metal-chrome','metal-glass','metal-holo','metal-anodized','metal-guilloche'];
 const reduced=matchMedia('(prefers-reduced-motion: reduce)');
 const canvas=document.createElement('canvas');canvas.className='hover-shader';canvas.setAttribute('aria-hidden','true');
 const seen=new WeakSet(),cycles=new WeakMap(),programs=new Map();
 let effectTarget,outputProgram,outputSize,cropRect;
-let renderer,active=null,frame=0,token=0,start=0,current,order=0,lastFrame=0,logoVisible=false,logoTimer;
+let renderer,active=null,pending=null,frame=0,token=0,start=0,current,order=0,lastFrame=0,logoVisible=false,logoTimer;
 const brand=document.querySelector('.topbar .brand');
-function scheduleLogo(){clearTimeout(logoTimer);if(logoVisible&&!reduced.matches&&!document.hidden)logoTimer=setTimeout(()=>{if(!active)play(brand);},1400);}
+function scheduleLogo(){clearTimeout(logoTimer);if(logoVisible&&!reduced.matches&&!document.hidden)logoTimer=setTimeout(()=>{if(!active&&!pending)play(brand);},1400);}
 document.querySelector('.brand-effect')?.remove();
-function stop(){token++;cancelAnimationFrame(frame);frame=0;active?.classList.remove('hover-rendering');canvas.remove();active=null;scheduleLogo();}
+function stop(){token++;cancelAnimationFrame(frame);frame=0;active?.classList.remove('hover-rendering');canvas.remove();active=null;pending=null;scheduleLogo();}
 function rasterText(el,rect,pad,scale){
  const plate=document.createElement('canvas');plate.width=Math.ceil((rect.width+pad*2)*scale);plate.height=Math.ceil((rect.height+pad*2)*scale);
  const c=plate.getContext('2d');c.scale(scale,scale);
@@ -33,7 +34,7 @@ function rasterText(el,rect,pad,scale){
 }
 async function play(el){
  if(reduced.matches||document.hidden||el===active)return;
- stop();clearTimeout(logoTimer);const ticket=token;await document.fonts.ready;
+ stop();clearTimeout(logoTimer);pending=el;const ticket=token;await document.fonts.ready;
  if(ticket!==token||reduced.matches)return;
  const host=el.getBoundingClientRect();let rect=host;
  if(!el.classList.contains('brand')){
@@ -42,18 +43,19 @@ async function play(el){
   if(boxes.length){const left=Math.min(...boxes.map(r=>r.left)),top=Math.min(...boxes.map(r=>r.top)),right=Math.max(...boxes.map(r=>r.right)),bottom=Math.max(...boxes.map(r=>r.bottom));rect={left,top,width:right-left,height:bottom-top};}
  }
  if(!rect.width||!rect.height)return;
- const isLogo=el.classList.contains('brand'),pad=isLogo?0:14;
+ const isLogo=el.classList.contains('brand'),pad=isLogo?32:14;
+ const xPad=isLogo?Math.min(pad,Math.max(0,host.left-2),Math.max(0,innerWidth-host.right-2)):pad;
  const scale=Math.min(devicePixelRatio||1,2,1440/(rect.width+pad*2));
  let plate;
  if(isLogo){
   const img=el.querySelector('img');try{await img.decode();}catch{return;}if(ticket!==token)return;
-  plate=document.createElement('canvas');plate.width=Math.ceil(rect.width*scale);plate.height=Math.ceil(rect.height*scale);const c=plate.getContext('2d');c.scale(scale,scale);
-  const r=img.getBoundingClientRect();c.drawImage(img,r.left-rect.left,r.top-rect.top,r.width,r.height);
+  plate=document.createElement('canvas');plate.width=Math.ceil((rect.width+xPad*2)*scale);plate.height=Math.ceil((rect.height+pad*2)*scale);const c=plate.getContext('2d');c.scale(scale,scale);
+  const r=img.getBoundingClientRect();c.drawImage(img,r.left-rect.left+xPad,r.top-rect.top+pad,r.width,r.height);
  }else plate=rasterText(el,rect,pad,scale);
  if(ticket!==token)return;
  const idx=cycles.get(el)||0;cycles.set(el,(idx+1)%hoverEffects.length);current=stingers.find(e=>e.id===(isLogo?hoverEffects:textEffects)[idx]);
- canvas.style.cssText=`left:${rect.left-host.left-pad}px;top:${rect.top-host.top-pad}px;width:${rect.width+pad*2}px;height:${rect.height+pad*2}px`;
- el.append(canvas);active=el;
+ canvas.style.cssText=`left:${rect.left-host.left-xPad}px;top:${rect.top-host.top-pad}px;width:${rect.width+xPad*2}px;height:${rect.height+pad*2}px`;
+ el.append(canvas);active=el;pending=null;
  try{
   if(!renderer)renderer=new Renderer(canvas,stop,true);
   if(renderer.lost){stop();return;}
@@ -68,9 +70,7 @@ async function play(el){
   if(!effectTarget)effectTarget=renderer.target();
   if(!outputProgram)outputProgram=renderer.program(`precision highp float;varying vec2 uv;uniform sampler2D image;uniform vec4 cropRect;void main(){gl_FragColor=texture2D(image,cropRect.xy+uv*cropRect.zw);}`);
   canvas.width=outputSize[0];canvas.height=outputSize[1];
-  const cacheKey=current.id+(isLogo?':logo':':text');let program=programs.get(cacheKey);if(!program){let adapted=isfProgram(current);if(!isLogo&&current.id==='glitch-pixelsort')adapted=adapted.replace(/float gate =[^;]+;/,'float gate = 1.0;');const shader=adapted.replace(/void\s+main\s*\(\s*\)/,'void hoverEffectMain()')+`
-uniform float hoverMix,readability,materialGain;
-void main(){hoverEffectMain();vec4 original=samplePlate(inputImage,isf_FragNormCoord);gl_FragColor.rgb=clamp(gl_FragColor.rgb*materialGain,0.,1.);gl_FragColor=mix(original,mix(gl_FragColor,original,readability*original.a),hoverMix);}`;program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
+  const cacheKey=current.id+(isLogo?':logo':':text');let program=programs.get(cacheKey);if(!program){const shader=hoverShader(current,isLogo,isfProgram);program=renderer.program(shader);program.ints=new Set(current.params.filter(p=>p.type==='long').map(p=>p.name));programs.set(cacheKey,program);}current={...current,program};
   const g=renderer.gl;g.activeTexture(g.TEXTURE0);g.bindTexture(g.TEXTURE_2D,renderer.logoTexture);g.pixelStorei(g.UNPACK_FLIP_Y_WEBGL,true);g.texImage2D(g.TEXTURE_2D,0,g.RGBA,g.RGBA,g.UNSIGNED_BYTE,plate);
   el.dataset.hoverEffect=current.id;start=performance.now();lastFrame=0;frame=requestAnimationFrame(draw);
  }catch(error){console.warn('Hover shader unavailable',current?.id,error);stop();}
@@ -92,7 +92,8 @@ function draw(now){
  case 'fluid-ash':Object.assign(values,{uDissolve:.12*pulse,uTint:[.68,.4,1,1]});break;
  case 'fluid-shockwave':Object.assign(values,{uBeat:Math.min(.99,p),uBounce:.12,uGravityWell:.3,uTurbScale:1.5,uTint:[.6,1,.3,1]});break;
  }
- if(!active.classList.contains('brand')){
+ if(active.classList.contains('brand'))Object.assign(values,logoTreatment(current.id,t));
+ else{
   const treatments={
    'glitch-ledwall':{uResolve:1-.48*pulse,uBloom:.1},
    'fluid-soapfilm':{uTurbScale:1.4,uLifespan:5.5,readability:.2},
@@ -111,19 +112,19 @@ function draw(now){
  if(!active.classList.contains('hover-rendering'))active.classList.add('hover-rendering');
  // Blend back to the native lettering before removing the surface.
  canvas.style.opacity="1";
- if(t<5)frame=requestAnimationFrame(draw);else stop();
+ if(t<EFFECT_DURATION)frame=requestAnimationFrame(draw);else stop();
 }
 function attach(){
  for(const el of document.querySelectorAll('.topbar .brand,.topbar nav a,h1,h2,h3,h4,h5,h6,p,strong,span,a,button')){
   if(seen.has(el))continue;if(!el.matches('.brand,.topbar nav a,h1,h2,h3,h4,h5,h6')&&!(parseFloat(getComputedStyle(el).fontSize)>=24&&[...el.childNodes].some(n=>n.nodeType===3&&n.textContent.trim())))continue;seen.add(el);el.classList.add('hover-surface');
   cycles.set(el,el.classList.contains('brand')?0:el.matches('.topbar nav a')?1+(order++%7):(order++%8));
   el.addEventListener('pointerenter',e=>{if(e.pointerType!=='touch')play(el);});
-  el.addEventListener('pointerleave',()=>{if(active===el&&el!==brand)stop();});
-  el.addEventListener('focus',()=>play(el));el.addEventListener('blur',()=>{if(active===el)stop();});
+  el.addEventListener('pointerleave',()=>{if((active===el||pending===el)&&el!==brand)stop();});
+  el.addEventListener('focus',()=>play(el));el.addEventListener('blur',()=>{if(active===el||pending===el)stop();});
  }
 }
 attach();const observer=new MutationObserver(attach);observer.observe(document.body,{subtree:true,childList:true});
-const logoObserver=new IntersectionObserver(([entry])=>{logoVisible=entry.isIntersecting;if(!logoVisible&&active===brand)stop();else if(!active)scheduleLogo();});logoObserver.observe(brand);
+const logoObserver=new IntersectionObserver(([entry])=>{logoVisible=entry.isIntersecting;if(!logoVisible&&(active===brand||pending===brand))stop();else if(!active)scheduleLogo();});logoObserver.observe(brand);
 reduced.addEventListener('change',stop);window.addEventListener('resize',stop);window.addEventListener('blur',stop);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)stop();else scheduleLogo();});
 window.addEventListener('pagehide',()=>{logoVisible=false;stop();clearTimeout(logoTimer);logoObserver.disconnect();observer.disconnect();if(effectTarget&&renderer){renderer.gl.deleteTexture(effectTarget.t);renderer.gl.deleteFramebuffer(effectTarget.f);}renderer?.destroy();});

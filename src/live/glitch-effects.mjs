@@ -10,7 +10,7 @@ export function glitchShader(effect,source){
  source=source.replace('uniform vec2 RENDERSIZE;','uniform vec2 RENDERSIZE;uniform sampler2D geometryImage;')
  .replace('return keyed(imgClamp(uv)) * inb.x * inb.y;','return samplePlate(geometryImage,uv).a * inb.x * inb.y;')
  .replace(/float keyed\(vec4 c\)\s*\{[^}]*\}/,'float keyed(vec4 c){return c.a*smoothstep(.12,.38,max(c.r,max(c.g,c.b)));}');
- if(effect.id==='glitch-beatcut')source=source.replace('* 0.7;','* 0.12;').replace('pz / 1.45','pz / 1.08').replace('q.x = abs(q.x) * (h.z < 0.5 ? -1.0 : 1.0)','q.x += (h.z-.5)*.08').replace('q.y = -q.y','q.y += (h.z-.5)*.05').replace('* 0.04;','* 0.018;').replace('vec2 pz = p / zoom;','zoom=min(zoom,1.08);vec2 pz = p / zoom;');
+ if(effect.id==='glitch-beatcut')source=source.replace('* 0.7;','* 0.12;').replace('pz / 1.45','pz').replace('(h.z - 0.5) * 0.08','(h.z - 0.5) * 0.045').replace('q.x = abs(q.x) * (h.z < 0.5 ? -1.0 : 1.0)','q.x += (h.z-.5)*.08').replace('q.y = -q.y','q.y += (h.z-.5)*.05').replace('* 0.04;','* 0.018;').replace('q = uv2p(fract(uv * 2.0)) / zoom','q.x += sin(floor(uv.y*6.0)+bi)*.035').replace('vec2 pz = p / zoom;','zoom=min(zoom,1.08);vec2 pz = p / zoom;');
  if(effect.id==='glitch-rgb')source=source.replace('float amtRest = uChannelOffset','float amtRest = min(uChannelOffset,.018)').replace('uChannelOffset * 1.6);','min(uChannelOffset,.018) * 1.6);');
  if(effect.id==='glitch-crt')source=source.replace('* 0.35 * uGlitch * ph','* 0.08 * uGlitch * ph');
  if(effect.id==='glitch-static')source=source.replace('mix(0.08, 1.0, near)','near').replace('through, 0.6 * uGlitch * burst','through, 0.4 * uGlitch * burst');

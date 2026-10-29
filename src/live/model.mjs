@@ -1,7 +1,7 @@
 /** Small, deterministic functions shared by the browser and tests. */
 export const clamp=(x,a=0,b=1)=>Math.max(a,Math.min(b,Number.isFinite(+x)?+x:a));
 export const defaults={speed:.65,zoom:1,rotation:0,hue:0,displacement:0,sorting:0,threshold:.18,artifacts:0,feedback:0,mosh:0,react:.3,mix:0,mirror:false,logoSize:1,logoOpacity:0,logoEffect:2,logoMotion:1,logoProgress:.5};
-export const ranges={speed:[0,2],zoom:[.5,2],rotation:[-180,180],hue:[-180,180],displacement:[0,1],sorting:[0,1],threshold:[0,1],artifacts:[0,1],feedback:[0,.92],mosh:[0,.94],react:[0,1],mix:[0,1],logoSize:[.4,1.5],logoOpacity:[0,1],logoEffect:[0,44],logoMotion:[0,1],logoProgress:[0,1]};
+export const ranges={speed:[0,2],zoom:[.5,2],rotation:[-180,180],hue:[-180,180],displacement:[0,1],sorting:[0,1],threshold:[0,1],artifacts:[0,1],feedback:[0,.92],mosh:[0,.94],react:[0,1],mix:[0,1],logoSize:[.4,1.5],logoOpacity:[0,1],logoEffect:[0,43],logoMotion:[0,1],logoProgress:[0,1]};
 export const genres=[
  {id:'dnb',name:'Drum & bass',title:'Night transmission',bpm:172,swing:0,root:41,kick:[0,6,10],snare:[4,12],bass:[0,3,6,10,13]},
  {id:'house',name:'Gangsta house',title:'Concrete swing',bpm:126,swing:.08,root:38,kick:[0,4,8,12],snare:[4,12],bass:[2,5,7,10,14]},

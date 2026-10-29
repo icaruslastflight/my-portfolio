@@ -889,68 +889,6 @@ ${xs}
   float flick = 0.92 + 0.08 * hash11(floor(t * 24.0));
   col *= scan * flick * (0.75 + uFresnel * 0.25);
   gl_FragColor = vjOut(col, 0.0);
-}`},{id:"metal-origami",audience:"brand",category:"metal",name:"Origami Paper Fold",qa:{probe:{uFold:.3}},blurb:"A printed paper sheet unfolds from a tight accordion grid into the flat logo print.",params:[Pe("uFold","Unfold Progress",1,0,1,{auto:Qn(.07,"tri"),hint:"Holds flat above ~0.55."}),...Ft(pc([.96,.94,.89,1]),{uDepth:{label:"Fold Relief"},uRoughness:{label:"Paper Texture",hint:"Fibre and crumple."},uFresnel:{label:"Crease Sheen"},uBevel:{label:"Crease Width"},uOrbit:{label:"Sway Speed"},uTint:{label:"Paper Colour"}}),...qe],presets:[{name:"Washi White",values:{}},{name:"Black Card",values:{uTint:[.13,.14,.17,1]}},{name:"Kraft Paper",values:{uTint:[.78,.62,.42,1],uRoughness:.5}}],glsl:`
-// Paper that really folds: the sheet edge zig-zags with the fold angle, washi is the default so the print
-// reads as ink on paper, there is a dwell at the open state, and the kick flexes the folds.
-void main() {
-${xs}
-  float u = smoothstep(0.0, 0.55, clamp(uFold, 0.0, 1.0));
-  float thx = (1.0 - smoothstep(0.0, 0.62, u)) * 1.1 * (1.0 - 0.3 * kick);
-  float thy = (1.0 - smoothstep(0.3, 1.0, u)) * 1.1 * (1.0 - 0.3 * kick);
-  float amt = max(sin(thx), sin(thy));
-  float ang = sin(t * uOrbit) * 0.07;
-  vec2 pr = rot2(ang) * p;
-  float tiltK = sin(t * uOrbit * 0.7) * 0.25 * (0.3 + amt);
-  pr.x /= 1.0 + tiltK * pr.y;
-  vec2 S = vec2(0.76, 0.42);
-  vec2 cs = vec2(cos(thx), cos(thy));
-  vec2 Sp = S * cs;
-  vec2 x = pr / max(cs, vec2(0.05));
-  vec2 N = vec2(8.0, 4.0);
-  vec2 cell = (x + S) / (2.0 * S) * N;
-  vec2 ci = floor(cell);
-  vec2 cf = fract(cell);
-  // fold geometry: alternate panels rise and fall, so the top/bottom edges become a sawtooth
-  float zq = (abs(fract(cell.x * 0.5) * 2.0 - 1.0) - 0.5) * sin(thx);
-  vec2 prf = pr; prf.y *= 1.0 + 0.45 * zq * amt;
-  vec2 sh = vec2(0.01, -0.016) * (1.0 + uDepth * 14.0) * (0.4 + amt);
-  vec2 ds = abs(prf - sh) - Sp;
-  float shadow = (1.0 - smoothstep(-0.01, 0.03, max(ds.x, ds.y))) * 0.6;
-  vec2 dq = abs(prf) - Sp;
-  float inSheet = 1.0 - smoothstep(-px, px, max(dq.x, dq.y));
-  vec2 sgn = vec2(mod(ci.x, 2.0) < 0.5 ? 1.0 : -1.0, mod(ci.y, 2.0) < 0.5 ? 1.0 : -1.0);
-  float diagFlip = mod(ci.x + ci.y, 2.0) < 0.5 ? 1.0 : -1.0;
-  float tri = (diagFlip > 0.0 ? cf.x - cf.y : cf.x + cf.y - 1.0) > 0.0 ? 1.0 : -1.0;
-  float fiber = 1.0 + (vnoise(x * 260.0) - 0.5) * (0.04 + 0.5 * uRoughness) + (vnoise(x * 40.0) - 0.5) * 0.45 * uRoughness;
-  vec2 crumple = (vec2(vnoise(x * 18.0), vnoise(x * 18.0 + 7.0)) - 0.5) * uRoughness * 0.9;
-  float relief = 0.6 + uDepth * 6.0;
-  vec3 n = normalize(vec3(sgn.x * sin(thx) * relief + tri * 0.18 * amt + crumple.x, sgn.y * sin(thy) * relief - tri * 0.12 * amt + crumple.y, cos(thx) * cos(thy)));
-  vec3 L = normalize(vec3(-0.55, 0.6, 0.6));
-  float diff = 0.25 + 1.2 * max(dot(n, L), 0.0);
-  vec2 cd = min(cf, 1.0 - cf) * 2.0 * S / N;
-  float cw = uBevel * 0.25 + 0.0008;
-  float creaseX = 1.0 - smoothstep(0.0, cw, cd.x);
-  float creaseY = 1.0 - smoothstep(0.0, cw, cd.y);
-  float diagD = abs(diagFlip > 0.0 ? cf.x - cf.y : cf.x + cf.y - 1.0) * 0.7 * 2.0 * S.y / N.y;
-  float creaseD = (1.0 - smoothstep(0.0, cw * 0.7, diagD)) * amt;
-  float mountain = mod(ci.x, 2.0) < 0.5 ? 1.0 : 0.0;
-  vec4 lg = logoRGBA(x);
-  vec3 paper = uTint.rgb * fiber;
-  // auto-contrast ink from the paper tint alone (no fibre noise in the decision, so no speckle)
-  float lp = dot(uTint.rgb, vec3(0.299, 0.587, 0.114));
-  float li = dot(lg.rgb, vec3(0.299, 0.587, 0.114));
-  vec3 contrastInk = lp > 0.5 ? lg.rgb * 0.18 : mix(lg.rgb, vec3(1.0), 0.7);
-  vec3 inkc = mix(lg.rgb, contrastInk, 1.0 - smoothstep(0.25, 0.45, abs(li - lp)));
-  vec3 ink = mix(paper, inkc, lg.a * 0.95);
-  vec3 col = ink * diff;
-  float hiCrease = (creaseX * mountain + creaseY * 0.5) * amt;
-  float loCrease = (creaseX * (1.0 - mountain) + creaseY * 0.5 + creaseD) * amt;
-  col += vec3(1.0) * hiCrease * 0.35 * uFresnel;
-  col *= 1.0 - loCrease * 0.5;
-  float edgeD = min(abs(dq.x), abs(dq.y));
-  col += vec3(1.0) * (1.0 - smoothstep(0.0, 0.004, edgeD)) * 0.25 * uFresnel * inSheet;
-  col = 1.0 - exp(-col * 1.4);
-  gl_FragColor = vjOut(col * inSheet, max(inSheet, shadow));
 }`},{id:"metal-crystal",audience:"brand",category:"metal",name:"Crystal Growth Matrix",qa:{probe:{uCrystal:.6}},blurb:"Faceted gem cells nucleate across the logo, catching glints in a rotating studio light.",params:[Pe("uCrystal","Growth Progress",1,0,1,{auto:Qn(.07,"tri")}),...Ft(pc([.7,.85,1,1]),{uDepth:{label:"Facet Tilt"},uRoughness:{label:"Facet Frost"},uFresnel:{label:"Facet Rim"},uBevel:{label:"Facet Border",hint:"Border line and dark crease width."},uOrbit:{label:"Facet Spin",hint:"Rotates every facet (the glints wander)."},uTint:{label:"Gem Tint"}}),...qe],presets:[{name:"Diamond",values:{}},{name:"Amethyst",values:{uTint:[.75,.45,1,1],uDepth:.12}},{name:"Emerald Frost",values:{uTint:[.3,1,.6,1],uRoughness:.5}}],glsl:`
 vec4 voro(vec2 x, out vec2 second) {
   vec2 n = floor(x); vec2 f = fract(x);

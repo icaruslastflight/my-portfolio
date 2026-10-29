@@ -27,6 +27,7 @@ export function fluidShader(effect,source){
  if(effect.id==='fluid-ember')source=source.replace('0.003 + 0.003 * fk','0.0018 + 0.0012 * fk').replace('0.95 - 0.7 * ageN','0.72 - 0.55 * ageN').replace('(1.6 + 0.6 * sin(t * 20.0 + h.y * 50.0))','(.65 + .2 * sin(t * 20.0 + h.y * 50.0))');
  if(effect.id==='fluid-soapfilm')source=source.replace('vec4 lg = logoRGBA(p);','vec4 lg = logoRGBA(p); lg.a=logoP(p);').replace('lg.rgb * 0.18 + filmL * (0.5 + 0.6 * luma)','lg.rgb * 0.42 + filmL * (0.3 + 0.4 * luma)').replace('sheen * 0.3','sheen * 0.16').replace('halo * (0.6 + 0.6 * kick)','halo * (0.25 + 0.3 * kick)');
  const endpoint=effect.id==='fluid-frost'?'uClear>=.9999':effect.id==='fluid-ash'?'uDissolve<=.0001':effect.id==='fluid-ember'?'uBurn<=.0001':null;
- if(endpoint){source=source.replace(/void\s+main\s*\(\s*\)/,'void fluidMain()');source+='\nvoid main(){if('+endpoint+'){gl_FragColor=samplePlate(inputImage,isf_FragNormCoord);return;}fluidMain();}\n';}
+ const exit=effect.id==='fluid-ash'?'uDissolve':effect.id==='fluid-ember'?'uBurn':null;
+ if(endpoint){source=source.replace(/void\s+main\s*\(\s*\)/,'void fluidMain()');source+='\nvoid main(){if('+endpoint+'){gl_FragColor=samplePlate(inputImage,isf_FragNormCoord);return;}fluidMain();'+(exit?'gl_FragColor.a*=1.-smoothstep(.94,1.,'+exit+');':'')+'}\n';}
  return source;
 }

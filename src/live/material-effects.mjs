@@ -9,7 +9,7 @@ export function inkMaskPixels(rgba){
 export function materialDefaults(effect){
  if(!materialEffectIds.has(effect.id))return {};
  const available=new Set(effect.params.map(p=>p.name));
- return Object.fromEntries(Object.entries({uTint:[.74,.46,.95,1],uDepth:.025,uBevel:.006,uRoughness:.28,uFresnel:1.1,...(effect.id==='metal-crystal'?{uDepth:.085,uRoughness:.16,uTint:[.66,.4,.9,1]}:{})}).filter(([name])=>available.has(name)));
+ return Object.fromEntries(Object.entries({uTint:[.74,.46,.95,1],uDepth:.025,uBevel:.006,uRoughness:.28,uFresnel:1.1,...(effect.id==='metal-crystal'?{uDepth:.085,uRoughness:.16,uTint:[.66,.4,.9,1]}:{}),...(effect.id==='metal-forge'?{uTint:[.95,.36,.12,1]}:{})}).filter(([name])=>available.has(name)));
 }
 export function materialShader(effect,source){
  if(!materialEffectIds.has(effect.id))return source;
@@ -18,6 +18,6 @@ export function materialShader(effect,source){
  source=source.replace('return vec4(c.rgb, keyed(c) * inb.x * inb.y);','return vec4(c.rgb, samplePlate(geometryImage,uv).a * inb.x * inb.y);');
  if(effect.id==='metal-crystal')source=source.slice(0,source.lastIndexOf('void main()'))+crystalGrowthGLSL;
  source=source.replace(/void\s+main\s*\(\s*\)/,'void materialMain()');
- const readable=effect.id==='metal-crystal'?'0.12':effect.id==='metal-forge'?'0.26':effect.id==='metal-guilloche'?'0.22':'0.14';
- return source+`\nvoid main(){materialMain();vec4 original=samplePlate(inputImage,isf_FragNormCoord);float ink=samplePlate(geometryImage,isf_FragNormCoord).a;float mixAmount=${readable}*ink;vec4 effect=gl_FragColor;vec4 pm=mix(vec4(effect.rgb*effect.a,effect.a),vec4(original.rgb*ink,ink),mixAmount);gl_FragColor=vec4(pm.rgb/max(pm.a,.0001),pm.a);}\n`;
+ const readable=effect.id==='metal-crystal'?'0.12':effect.id==='metal-forge'?'0.36':effect.id==='metal-guilloche'?'0.22':effect.id==='fluid-goldfill'?'mix(.14,.3,smoothstep(.7,1.,uFill))':'0.14';
+ return source+`\nvoid main(){materialMain();vec4 original=samplePlate(inputImage,isf_FragNormCoord);float ink=samplePlate(geometryImage,isf_FragNormCoord).a;float mixAmount=${readable}*ink;vec4 effect=gl_FragColor;${effect.id==='metal-forge'?'effect.rgb=pow(max(effect.rgb,vec3(0.)),vec3(.8));':''}vec4 pm=mix(vec4(effect.rgb*effect.a,effect.a),vec4(original.rgb*ink,ink),mixAmount);gl_FragColor=vec4(pm.rgb/max(pm.a,.0001),pm.a);}\n`;
 }

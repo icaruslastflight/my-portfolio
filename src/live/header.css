@@ -52,3 +52,5 @@ body{background:transparent;isolation:isolate}
 .topbar .brand{overflow:visible}
 
 @media(max-width:800px){.topbar{position:relative;top:auto}}
+.topbar{position:sticky;top:0;z-index:50;background:rgba(18,21,20,.94)}
+html{scroll-padding-top:calc(var(--portfolio-header-height,150px) + 16px)}

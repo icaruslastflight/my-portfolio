@@ -3,6 +3,7 @@ import {stingers} from './stingers.mjs';
 import {logoTreatment,hoverShader,EFFECT_DURATION} from './effect-preview.mjs';
 const ids=['glitch-pixelsort','fluid-soapfilm','metal-acrylic','flora-engrave','glitch-ledwall','glitch-halftone','fluid-ash','fluid-shockwave'];
 const brand=document.querySelector('.topbar .brand'),img=brand.querySelector('img'),canvas=document.createElement('canvas');canvas.className='hover-shader logo-loop';canvas.setAttribute('aria-hidden','true');canvas.hidden=true;brand.append(canvas);
+const header=brand.closest('.topbar');const headerSize=new ResizeObserver(()=>document.documentElement.style.setProperty('--portfolio-header-height',header.getBoundingClientRect().height+'px'));headerSize.observe(header);
 const reduced=matchMedia('(prefers-reduced-motion: reduce)'),programs=new Map();let renderer,target,copy,output,crop,index=0,frame=0,timer=0,start=0,last=0,visible=false,ready=false,version=0,failed=false;
 function stop(){clearTimeout(timer);cancelAnimationFrame(frame);frame=0;canvas.hidden=true;brand.classList.remove('hover-rendering');}
 function schedule(){clearTimeout(timer);if(visible&&ready&&!failed&&!reduced.matches&&!document.hidden)timer=setTimeout(begin,250);}
@@ -18,4 +19,4 @@ function draw(now){if(!visible||reduced.matches||document.hidden){stop();return;
  frame=requestAnimationFrame(draw);}
 const observer=new IntersectionObserver(([entry])=>{visible=entry.isIntersecting;if(visible)schedule();else stop();});observer.observe(brand);
 reduced.addEventListener('change',()=>{stop();schedule();});document.addEventListener('visibilitychange',()=>{stop();schedule();});window.addEventListener('resize',prepare);
-window.addEventListener('pagehide',()=>{stop();observer.disconnect();if(target&&renderer){renderer.gl.deleteTexture(target.t);renderer.gl.deleteFramebuffer(target.f);}renderer?.destroy();});prepare();
+window.addEventListener('pagehide',()=>{stop();observer.disconnect();headerSize.disconnect();if(target&&renderer){renderer.gl.deleteTexture(target.t);renderer.gl.deleteFramebuffer(target.f);}renderer?.destroy();});prepare();

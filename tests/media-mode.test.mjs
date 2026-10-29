@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';import{readFileSync}from'node:fs';import{isDynamicImage}from'../src/live/media-mode.mjs';
+const fixtures=JSON.parse(readFileSync(new URL('./fixtures/media-fixtures.json',import.meta.url),'utf8'));
+test('real static and animated image containers select the appropriate upload mode',async()=>{for(const f of fixtures)assert.equal(await isDynamicImage(new Blob([Buffer.from(f.data,'base64')])),f.dynamic,f.name);});
+test('AVIF sequence brands remain dynamic while still AVIF can be cached',async()=>{for(const[brand,dynamic]of[['avif',false],['avis',true]]){const h=Buffer.alloc(20);h.writeUInt32BE(20);h.write('ftyp',4);h.write(brand,8);h.write(brand,16);assert.equal(await isDynamicImage(new Blob([h])),dynamic);}});
+test('SVG animation, unknown formats, and incomplete PNG metadata remain dynamic',async()=>{for(const data of['<svg><animate attributeName="opacity"/></svg>',new Uint8Array([1,2,3]),new Uint8Array([137,80,78,71,13,10,26,10])])assert.equal(await isDynamicImage(new Blob([data])),true);});
